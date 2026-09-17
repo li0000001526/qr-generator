@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<link rel="canonical" href="https://dmosj.li00000.xyz/">
+<meta name="description" content="在线二维码生成器：免费生成可下载的 QR Code，支持文本、网址、WiFi、电话、短信、邮箱、名片 7 种内容，可自定义纠错等级、尺寸、配色与中心 Logo，实时预览并一键导出 PNG / SVG。纯前端、零网络请求、数据不出本机。" />
+<meta name="keywords" content="二维码生成器,在线二维码生成,免费二维码制作,二维码下载,QR code generator online,qr code maker free,二維碼產生器,QR 코드 생성,コード生成" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="二维码生成器 · 在线免费生成 QR Code" />
+<meta property="og:description" content="纯前端在线生成二维码：7 种内容类型、自定义纠错/尺寸/配色/中心 Logo，实时预览，一键下载 PNG / SVG，数据不出本机。" />
+<meta property="og:url" content="https://dmosj.li00000.xyz/"/>
+<meta property="og:image" content="https://dmosj.li00000.xyz/og.png" />
+<meta property="og:site_name" content="二维码生成器" />
+<meta property="og:locale" content="zh_CN" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="二维码生成器 · 在线免费生成 QR Code" />
+<meta name="twitter:description" content="7 种内容类型、自定义纠错/配色/Logo，一键下载 PNG / SVG，纯前端零请求。" />
+<script type="application/ld+json">
+{"@context":"https://***"@type":"WebApplication","name":"二维码生成器","alternateName":["QR Code Generator","在线二维码生成","二維碼產生器"],"url":"https://dmosj.li00000.xyz/","applicationCategory":"UtilityApplication","operatingSystem":"Any","inLanguage":["zh-CN","zh-Hant","en"],"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"publisher":{"@type":"Organization","name":"li00000 在线工具集","url":"https://li00000.xyz/"}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://***"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"在线生成的二维码可以免费商用吗？","acceptedAnswer":{"@type":"Answer","text":"可以。本页基于 MIT 许可的 qrcode-generator 库在浏览器本地生成，不经过任何服务器，生成结果归使用者所有，可用于印刷品、商品包装、门店物料等商用场景，无水印、无次数限制。"}},{"@type":"Question","name":"一个二维码最多能装多少内容？","acceptedAnswer":{"@type":"Answer","text":"最大版本 40 的 QR Code 在低纠错（L）下可编码约 2953 字节字节模式数据。纠错等级越高可容纳内容越少（L 约 7% 容错 → H 约 30% 容错）。网页链接建议控制在 200 字符以内，保证手机远距离也能扫。"}},{"@type":"Question","name":"二维码最小能印到多大？","acceptedAnswer":{"@type":"Answer","text":"经验值：至少 2.5×2.5 cm 印刷尺寸、周围保留 1/4 码宽的静区；手机扫码器在 15 cm 外可靠识别。码越小、纠错越低，容错余量越小——加 Logo 或要印小就选 H 级。"}},{"@type":"Question","name":"怎么生成让别人直接连上的 WiFi 二维码？","acceptedAnswer":{"@type":"Answer","text":"选「WiFi」类型，填入网络名称 SSID、加密方式（WPA/WPA2、WEP 或无密码）与密码，隐藏网络请勾选 H 选项。打印贴出后，手机扫一下即可直连，无需手动输入密码。"}},{"@type":"Question","name":"中间加了 Logo 还能正常扫出来吗？","acceptedAnswer":{"@type":"Answer","text":"能。Logo 区域会铺白色圆角底衬保护模块，并把默认纠错提到 H 级更稳妥。Logo 占比保持在 20% 左右、四周留静区，印刷品距离稍远时仍可稳定识别。"}}]}
+</script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二维码生成器</title>
+<style>
+  :root{
+    --bg:#f5f7fb; --card:#ffffff; --ink:#1f2937; --muted:#6b7280;
+    --line:#e5e7eb; --accent:#4f46e5; --accent-soft:#eef2ff; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.5;
+  }
+  .app{max-width:980px; margin:0 auto; padding:28px 18px 60px;}
+  header{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:22px;}
+  header h1{margin:0 0 4px; font-size:24px; letter-spacing:.5px;}
+  header p{margin:0; color:var(--muted); font-size:14px; max-width:620px;}
+  #lang{padding:8px 10px; border:1px solid var(--line); border-radius:9px; font-size:14px; background:#fff; color:var(--ink); cursor:pointer;}
+  .grid{display:grid; grid-template-columns:380px 1fr; gap:20px; align-items:start;}
+  @media(max-width:780px){.grid{grid-template-columns:1fr;}}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px;}
+  .card h2{font-size:15px; margin:0 0 14px; color:var(--accent);}
+  label{display:block; font-size:13px; color:var(--muted); margin:12px 0 6px;}
+  input[type=text],input[type=tel],input[type=url],input[type=email],textarea,select{
+    width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:9px;
+    font-size:14px; color:var(--ink); background:#fff; outline:none; transition:border .15s,box-shadow .15s;
+    font-family:inherit;
+  }
+  input:focus,textarea:focus,select:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
+  textarea{resize:vertical;}
+  .row{display:flex; gap:12px;}
+  .row > div{flex:1;}
+  .chk{display:flex; align-items:center; gap:8px; color:var(--ink); font-size:14px;}
+  .chk input{width:auto;}
+  .seg{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px;}
+  .seg button{
+    border:1px solid var(--line); background:#fff; color:var(--muted);
+    padding:6px 12px; border-radius:20px; font-size:13px; cursor:pointer; transition:.15s;
+  }
+  .seg button.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .ctrl{margin:14px 0;}
+  .ctrl label{margin:0 0 6px; display:flex; justify-content:space-between;}
+  .ctrl label b{color:var(--accent); font-weight:600;}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  .colors{display:flex; gap:14px;}
+  .colors .c{flex:1;}
+  .colors input[type=color]{width:100%; height:38px; padding:2px; border:1px solid var(--line); border-radius:9px; background:#fff; cursor:pointer;}
+  .filebtn{display:inline-block; border:1px solid var(--accent); color:var(--accent); background:var(--accent-soft); padding:8px 14px; border-radius:9px; font-size:14px; cursor:pointer;}
+  .filebtn:hover{background:#e3e8ff;}
+  .preview{display:flex; flex-direction:column; align-items:center; justify-content:flex-start;}
+  .canvas-wrap{background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; display:inline-block; box-shadow:0 6px 20px rgba(31,41,55,.06);}
+  canvas{display:block; image-rendering:pixelated; max-width:100%; height:auto;}
+  .meta{font-size:13px; color:var(--muted); margin-top:12px; text-align:center; min-height:18px;}
+  .btns{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:16px;}
+  .btns button{border:none; border-radius:10px; padding:10px 16px; font-size:14px; cursor:pointer; font-weight:600; transition:.15s;}
+  .primary{background:var(--accent); color:#fff;}
+  .primary:hover{filter:brightness(1.07);}
+  .ghost{background:var(--accent-soft); color:var(--accent);}
+  .ghost:hover{background:#e3e8ff;}
+  .hint{font-size:12px; color:var(--muted); margin-top:10px; text-align:center; max-width:340px;}
+  footer{margin-top:30px; text-align:center; color:var(--muted); font-size:12px;}
+  code{background:var(--accent-soft); color:var(--accent); padding:1px 6px; border-radius:5px; font-size:12px;}
+
+  /* seo / FAQ panel — matches the site's card language */
+  section.seo{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;margin-top:22px}
+  section.seo h2{font-size:16px;margin:0 0 12px;color:var(--accent)}
+  section.seo h3{font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px}
+  section.seo .seo-card h3:first-child{margin-top:0}
+  section.seo p{font-size:13.5px;color:var(--muted);line-height:1.9;margin:0 0 4px}
+  section.seo p b{color:var(--accent)}
+  section.seo .seo-links{list-style:none;padding:0;margin:12px 0 4px}
+  section.seo .seo-links li{font-size:13px;color:var(--muted);padding:7px 0;line-height:1.6;border-bottom:1px dashed var(--line)}
+  section.seo .seo-links li:last-child{border-bottom:none}
+  section.seo a{color:var(--accent);text-decoration:none}
+  section.seo a:hover{text-decoration:underline}
+  section.seo .seo-friend{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);line-height:1.9}
+  section.seo .seo-fine{margin-top:10px;font-size:11.5px;color:var(--muted);opacity:.8}
+</style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%234f46e5'/%3E%3Cg fill='white'%3E%3Crect x='16' y='16' width='26' height='26'/%3E%3Crect x='58' y='16' width='26' height='26'/%3E%3Crect x='16' y='58' width='26' height='26'/%3E%3Crect x='62' y='58' width='10' height='10'/%3E%3Crect x='78' y='58' width='6' height='6'/%3E%3Crect x='58' y='76' width='10' height='6'/%3E%3Crect x='74' y='74' width='14' height='10'/%3E%3C/g%3E%3C/svg%3E" />
+<meta name="theme-color" content="#4f46e5" />
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1 id="tTitle">二维码生成器</h1>
+      <p id="tSub">纯前端 · 可离线 · 数据不出本机。支持文本、网址、WiFi、电话、短信、邮箱、名片。</p>
+    </div>
+    <select id="lang">
+      <option value="zh-CN">简体中文</option>
+      <option value="zh-TW">繁體中文</option>
+      <option value="en">English</option>
+    </select>
+  </header>
+
+  <div class="grid">
+    <!-- 配置区 -->
+    <section class="card">
+      <h2 id="step1">① 选择编码类型</h2>
+      <div class="seg" id="modeSeg">
+        <button data-mode="text" class="active">文本</button>
+        <button data-mode="url">网址</button>
+        <button data-mode="wifi">WiFi</button>
+        <button data-mode="tel">电话</button>
+        <button data-mode="sms">短信</button>
+        <button data-mode="email">邮箱</button>
+        <button data-mode="vcard">名片</button>
+      </div>
+      <div id="fields"></div>
+
+      <h2 id="step2" style="margin-top:22px;">② 外观与纠错</h2>
+      <div class="ctrl">
+        <label><span id="ecLabel">纠错等级</span> <b id="ecVal">M（约15%）</b></label>
+        <select id="ec"></select>
+      </div>
+      <div class="ctrl">
+        <label><span id="sizeLabel">尺寸</span> <b id="sizeVal">400 px</b></label>
+        <input type="range" id="size" min="120" max="1200" step="20" value="400">
+      </div>
+      <div class="ctrl">
+        <label><span id="marginLabel">静区（边距，模块数）</span> <b id="marginVal">4</b></label>
+        <input type="range" id="margin" min="0" max="16" step="1" value="4">
+      </div>
+      <div class="colors ctrl">
+        <div class="c">
+          <label id="fgLabel">前景色</label>
+          <input type="color" id="fg" value="#000000">
+        </div>
+        <div class="c">
+          <label id="bgLabel">背景色</label>
+          <input type="color" id="bg" value="#ffffff">
+        </div>
+      </div>
+
+      <h2 id="logoLabel" style="margin-top:22px;">③ 中心 Logo（可选）</h2>
+      <label class="filebtn" id="logoUploadLabel"><span id="logoUpload">上传图片</span>
+        <input type="file" id="logoFile" accept="image/*" hidden>
+      </label>
+      <div class="ctrl">
+        <label><span id="logoSizeLabel">大小</span> <b id="logoSizeVal">22%</b></label>
+        <input type="range" id="logoSize" min="10" max="30" step="1" value="22">
+      </div>
+      <button class="ghost" id="logoClear">清除</button>
+    </section>
+
+    <!-- 预览区 -->
+    <section class="card preview">
+      <h2 id="step3">④ 实时预览 / 导出</h2>
+      <div class="canvas-wrap"><canvas id="canvas" width="400" height="400"></canvas></div>
+      <div class="meta" id="meta"></div>
+      <div class="btns">
+        <button class="primary" id="dlPng">下载 PNG</button>
+        <button class="ghost" id="dlSvg">下载 SVG</button>
+        <button class="ghost" id="copyImg">复制图片</button>
+      </div>
+      <div class="hint" id="hint">提示：纠错等级越高越抗污损，但可容纳内容越少；想中间放 logo 建议选 H 级并把尺寸调大。</div>
+    </section>
+  </div>
+
+  
+  <section class="seo">
+    <h2 data-qr="seo.h1">二维码生成指南与常见问题</h2>
+    <h3 data-qr="seo.q1">在线生成二维码，可以免费商用吗？</h3>
+    <p data-qr="seo.q1p">可以。本页基于 <b>MIT 许可</b>的 qrcode-generator 库，全部计算在浏览器本地完成，不经过任何服务器：生成结果归你所有，可自由用于印刷品、商品包装、门店物料，<b>无水印、无次数限制</b>。</p>
+    <h3 data-qr="seo.q2">一个二维码最多能装多少内容？</h3>
+    <p data-qr="seo.q2p">最大版本 40 的 QR Code 在低纠错（L）下可编码约 <b>2953 字节</b>。纠错等级越高容错越强、可装内容越少（L≈7% → H≈30%）。网页链接建议 <b>200 字符以内</b>，保证远距离也能扫。</p>
+    <h3 data-qr="seo.q3">二维码最小能印到多大？</h3>
+    <p data-qr="seo.q3p">经验值：印刷尺寸 <b>至少 2.5×2.5 cm</b>、四周保留 1/4 码宽静区；手机在 15 cm 外可靠识别。码要印小或加 Logo，就把纠错提到 <b>H 级</b>。</p>
+    <h3 data-qr="seo.q4">怎么生成让别人直接连上的 WiFi 二维码？</h3>
+    <p data-qr="seo.q4p">选「WiFi」类型，填 <b>SSID、加密方式、密码</b>；隐藏网络勾选 H 选项。打印贴出，手机扫一下即连，免输密码。</p>
+    <h3 data-qr="seo.q5">中间加 Logo 还能扫出来吗？</h3>
+    <p data-qr="seo.q5p">能。本页给 Logo 铺<b>白色圆角底衬</b>保护模块，Logo 占比控制在 20% 左右、选 H 级纠错，印刷品远距离仍可稳定识别。</p>
+    <h3 data-qr="seo.h2ref">QR Code 标准与权威参考</h3>
+    <ul class="seo-links">
+      <li data-qr="seo.li1">ISO/IEC 18004 · QR Code 国际标准：<a href="https://en.wikipedia.org/wiki/QR_code" target="_blank" rel="noopener">QR code</a></li>
+      <li data-qr="seo.li2">qrcode.com · 初代 QR 规范文档（Denso Wave）：<a href="https://www.qrcode.com/" target="_blank" rel="noopener">qrcode.com</a></li>
+      <li data-qr="seo.li3">kazuhikoarase/qrcode-generator · 本页所用的 MIT 生成库：<a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">GitHub</a></li>
+      <li data-qr="seo.li4">Zxing · 工业级扫码/生成库（Google 开源）：<a href="https://github.com/zxing/zxing" target="_blank" rel="noopener">zxing</a></li>
+    </ul>
+    <div class="seo-friend" data-qr="seo.friend">更多在线工具：<a href="https://li00000.xyz/" target="_blank" rel="noopener">li00000 工具集</a> · <a href="https://tjtkw.li00000.xyz/" target="_blank" rel="noopener">健身体脂计算器</a> · <a href="https://bmuws.li00000.xyz/" target="_blank" rel="noopener">烘焙换算工具</a> · <a href="https://bwzib.li00000.xyz/" target="_blank" rel="noopener">篝火燃料估算</a> · <a href="https://calsa.li00000.xyz/" target="_blank" rel="noopener">时区时差倒计时</a> · <a href="https://blog.li00000.xyz/" target="_blank" rel="noopener">养老生活博客</a></div>
+    <p class="seo-fine" data-qr="seo.fine">本页所有生成在浏览器本地完成，无任何网络请求；扫码兼容性以各 App 实际表现为准。</p>
+  </section>
+
+  <footer id="footer">基于 MIT 许可的 Kazuhiko Arase QR Code Generator · 本页无任何网络请求</footer>
+</div>
+
+<script src="qrcode.min.js"></script>
+<script>
+(function(){
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+
+  // ---------------- 多语言字典 ----------------
+  var D = {
+    'zh-CN':{
+      title:'二维码生成器',
+      sub:'纯前端 · 可离线 · 数据不出本机。支持文本、网址、WiFi、电话、短信、邮箱、名片。',
+      step1:'① 选择编码类型', step2:'② 外观与纠错', step3:'④ 实时预览 / 导出',
+      modes:{text:'文本',url:'网址',wifi:'WiFi',tel:'电话',sms:'短信',email:'邮箱',vcard:'名片'},
+      fields:{
+        text:'<label>文本内容<textarea id="f_text" rows="3">https://www.example.com</textarea></label>',
+        url:'<label>网址（含 http/https 完整链接）<input id="f_url" type="url" value="https://www.example.com"></label>',
+        wifi:'<label>网络名称 SSID<input id="w_ssid" value="MyWiFi"></label>'
+            +'<label>加密方式<select id="w_enc"><option value="WPA">WPA / WPA2</option><option value="WEP">WEP</option><option value="nopass">无密码</option></select></label>'
+            +'<label>密码<input id="w_pwd" type="text" value="12345678"></label>'
+            +'<label class="chk"><input type="checkbox" id="w_hidden"> 隐藏网络（不广播 SSID）</label>',
+        tel:'<label>电话号码<input id="t_num" type="tel" value="13800138000"></label>',
+        sms:'<label>接收号码<input id="s_num" type="tel" value="13800138000"></label>'
+            +'<label>短信内容<textarea id="s_msg" rows="2">你好，这是测试短信</textarea></label>',
+        email:'<label>收件邮箱<input id="e_addr" type="email" value="hi@example.com"></label>'
+            +'<label>主题<input id="e_sub" type="text"></label>'
+            +'<label>正文<textarea id="e_body" rows="2"></textarea></label>',
+        vcard:'<label>姓名<input id="v_name" value="张三"></label>'
+            +'<label>电话<input id="v_tel" type="tel" value="13800138000"></label>'
+            +'<label>邮箱<input id="v_email" type="email" value="zhangsan@example.com"></label>'
+            +'<label>公司<input id="v_org" type="text"></label>'
+            +'<label>职位<input id="v_title" type="text"></label>'
+      },
+      ecLabel:'纠错等级', ecOpts:[{v:'L',t:'L — 低（约7% 容错）'},{v:'M',t:'M — 中（约15% 容错）'},{v:'Q',t:'Q — 较高（约25% 容错）'},{v:'H',t:'H — 高（约30% 容错，适合加 logo）'}],
+      ecShort:{L:'L（约7%）',M:'M（约15%）',Q:'Q（约25%）',H:'H（约30%）'},
+      sizeLabel:'尺寸', marginLabel:'静区（边距，模块数）', fgLabel:'前景色', bgLabel:'背景色',
+      logoLabel:'③ 中心 Logo（可选）', logoUpload:'上传图片', logoSizeLabel:'大小', logoClear:'清除',
+      dlPng:'下载 PNG', dlSvg:'下载 SVG', copyImg:'复制图片',
+      hint:'提示：纠错等级越高越抗污损，但可容纳内容越少；想中间放 logo 建议选 H 级并把尺寸调大。',
+      footer:'基于 MIT 许可的 Kazuhiko Arase QR Code Generator · 本页无任何网络请求',
+      meta:function(c,ec,n){return '版本 '+((c-17)/4)+' · '+c+'×'+c+' 模块 · 纠错 '+ec+' · 内容 '+n+' 字符';},
+      metaEmpty:'请输入要编码的内容',
+      metaErr:function(m){return '生成失败：'+m+'（内容过长，请精简或降低纠错等级）';},
+      ok:'已复制到剪贴板', fail:'复制失败，请改用“下载 PNG”', noCopy:'当前浏览器不支持复制图片，请改用“下载 PNG”'
+    },
+    'zh-TW':{
+      title:'二維碼產生器',
+      sub:'純前端 · 可離線 · 資料不出本機。支援文字、網址、WiFi、電話、簡訊、郵箱、名片。',
+      step1:'① 選擇編碼類型', step2:'② 外觀與糾錯', step3:'④ 即時預覽 / 匯出',
+      modes:{text:'文字',url:'網址',wifi:'WiFi',tel:'電話',sms:'簡訊',email:'郵箱',vcard:'名片'},
+      fields:{
+        text:'<label>文字內容<textarea id="f_text" rows="3">https://www.example.com</textarea></label>',
+        url:'<label>網址（含 http/https 完整連結）<input id="f_url" type="url" value="https://www.example.com"></label>',
+        wifi:'<label>網路名稱 SSID<input id="w_ssid" value="MyWiFi"></label>'
+            +'<label>加密方式<select id="w_enc"><option value="WPA">WPA / WPA2</option><option value="WEP">WEP</option><option value="nopass">無密碼</option></select></label>'
+            +'<label>密碼<input id="w_pwd" type="text" value="12345678"></label>'
+            +'<label class="chk"><input type="checkbox" id="w_hidden"> 隱藏網路（不廣播 SSID）</label>',
+        tel:'<label>電話號碼<input id="t_num" type="tel" value="13800138000"></label>',
+        sms:'<label>接收號碼<input id="s_num" type="tel" value="13800138000"></label>'
+            +'<label>簡訊內容<textarea id="s_msg" rows="2">你好，這是測試簡訊</textarea></label>',
+        email:'<label>收件郵箱<input id="e_addr" type="email" value="hi@example.com"></label>'
+            +'<label>主旨<input id="e_sub" type="text"></label>'
+            +'<label>正文<textarea id="e_body" rows="2"></textarea></label>',
+        vcard:'<label>姓名<input id="v_name" value="張三"></label>'
+            +'<label>電話<input id="v_tel" type="tel" value="13800138000"></label>'
+            +'<label>郵箱<input id="v_email" type="email" value="zhangsan@example.com"></label>'
+            +'<label>公司<input id="v_org" type="text"></label>'
+            +'<label>職位<input id="v_title" type="text"></label>'
+      },
+      ecLabel:'糾錯等級', ecOpts:[{v:'L',t:'L — 低（約7% 容錯）'},{v:'M',t:'M — 中（約15% 容錯）'},{v:'Q',t:'Q — 較高（約25% 容錯）'},{v:'H',t:'H — 高（約30% 容錯，適合加 logo）'}],
+      ecShort:{L:'L（約7%）',M:'M（約15%）',Q:'Q（約25%）',H:'H（約30%）'},
+      sizeLabel:'尺寸', marginLabel:'靜區（邊距，模組數）', fgLabel:'前景色', bgLabel:'背景色',
+      logoLabel:'③ 中心 Logo（可選）', logoUpload:'上傳圖片', logoSizeLabel:'大小', logoClear:'清除',
+      dlPng:'下載 PNG', dlSvg:'下載 SVG', copyImg:'複製圖片',
+      hint:'提示：糾錯等級越高越抗汙損，但可容納內容越少；想中間放 logo 建議選 H 級並把尺寸調大。',
+      footer:'基於 MIT 授權的 Kazuhiko Arase QR Code Generator · 本頁无任何網路請求',
+      meta:function(c,ec,n){return '版本 '+((c-17)/4)+' · '+c+'×'+c+' 模組 · 糾錯 '+ec+' · 內容 '+n+' 字元';},
+      metaEmpty:'請輸入要編碼的內容',
+      metaErr:function(m){return '生成失敗：'+m+'（內容過長，請精簡或降低糾錯等級）';},
+      ok:'已複製到剪貼簿', fail:'複製失敗，請改用「下載 PNG」', noCopy:'目前瀏覽器不支援複製圖片，請改用「下載 PNG」'
+    },
+    'en':{
+      title:'QR Code Generator',
+      sub:'Pure front-end · works offline · data never leaves your device. Supports text, URL, WiFi, phone, SMS, email, contact card.',
+      step1:'① Choose content type', step2:'② Appearance & error correction', step3:'④ Live preview / export',
+      modes:{text:'Text',url:'URL',wifi:'WiFi',tel:'Phone',sms:'SMS',email:'Email',vcard:'Contact'},
+      fields:{
+        text:'<label>Text content<textarea id="f_text" rows="3">https://www.example.com</textarea></label>',
+        url:'<label>URL (full link with http/https)<input id="f_url" type="url" value="https://www.example.com"></label>',
+        wifi:'<label>Network name (SSID)<input id="w_ssid" value="MyWiFi"></label>'
+            +'<label>Encryption<select id="w_enc"><option value="WPA">WPA / WPA2</option><option value="WEP">WEP</option><option value="nopass">None</option></select></label>'
+            +'<label>Password<input id="w_pwd" type="text" value="12345678"></label>'
+            +'<label class="chk"><input type="checkbox" id="w_hidden"> Hidden network (SSID not broadcast)</label>',
+        tel:'<label>Phone number<input id="t_num" type="tel" value="13800138000"></label>',
+        sms:'<label>Recipient number<input id="s_num" type="tel" value="13800138000"></label>'
+            +'<label>SMS text<textarea id="s_msg" rows="2">Hello, this is a test message</textarea></label>',
+        email:'<label>Email address<input id="e_addr" type="email" value="hi@example.com"></label>'
+            +'<label>Subject<input id="e_sub" type="text"></label>'
+            +'<label>Body<textarea id="e_body" rows="2"></textarea></label>',
+        vcard:'<label>Name<input id="v_name" value="Zhang San"></label>'
+            +'<label>Phone<input id="v_tel" type="tel" value="13800138000"></label>'
+            +'<label>Email<input id="v_email" type="email" value="zhangsan@example.com"></label>'
+            +'<label>Organization<input id="v_org" type="text"></label>'
+            +'<label>Title<input id="v_title" type="text"></label>'
+      },
+      ecLabel:'Error correction level', ecOpts:[{v:'L',t:'L — Low (~7%)'},{v:'M',t:'M — Medium (~15%)'},{v:'Q',t:'Q — Higher (~25%)'},{v:'H',t:'H — High (~30%, best with logo)'}],
+      ecShort:{L:'L (~7%)',M:'M (~15%)',Q:'Q (~25%)',H:'H (~30%)'},
+      sizeLabel:'Size', marginLabel:'Quiet zone (margin, modules)', fgLabel:'Foreground', bgLabel:'Background',
+      logoLabel:'③ Center logo (optional)', logoUpload:'Upload image', logoSizeLabel:'Size', logoClear:'Clear',
+      dlPng:'Download PNG', dlSvg:'Download SVG', copyImg:'Copy image',
+      hint:'Tip: higher error correction resists damage but holds less data; if you add a center logo, use level H and a larger size.',
+      footer:'Based on the MIT-licensed Kazuhiko Arase QR Code Generator · no network requests on this page',
+      meta:function(c,ec,n){return 'Version '+((c-17)/4)+' · '+c+'×'+c+' modules · EC '+ec+' · '+n+' chars';},
+      metaEmpty:'Please enter content to encode',
+      metaErr:function(m){return 'Generation failed: '+m+' (content too long, shorten it or lower the error-correction level)';},
+      ok:'Copied to clipboard', fail:'Copy failed, use "Download PNG" instead', noCopy:'Current browser does not support copying images, use "Download PNG"'
+    }
+  };
+
+  var state = { mode:'text', lang:'zh-CN' };
+  var logoImg=null, logoDataURL=null, logoRatio=0.22;
+  var currentSVG='';
+
+  function val(id){ var el=document.getElementById(id); return el?el.value:''; }
+  function checked(id){ var el=document.getElementById(id); return el?el.checked:false; }
+  function esc(s){ return String(s)
+      .replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,')
+      .replace(/:/g,'\\:').replace(/"/g,'\\"'); }
+
+  function buildPayload(){
+    var m=state.mode;
+    if(m==='text') return val('f_text');
+    if(m==='url')  return val('f_url');
+    if(m==='wifi'){
+      var enc=val('w_enc'), ssid=val('w_ssid'), pwd=val('w_pwd'), hid=checked('w_hidden');
+      if(enc==='nopass') return 'WIFI:T:nopass;S:'+esc(ssid)+';;';
+      return 'WIFI:T:'+enc+';S:'+esc(ssid)+';P:'+esc(pwd)+';H:'+(hid?'true':'false')+';;';
+    }
+    if(m==='tel')  return 'tel:'+val('t_num');
+    if(m==='sms')  return 'SMSTO:'+val('s_num')+':'+val('s_msg');
+    if(m==='email'){
+      var addr=val('e_addr'), sub=val('e_sub'), body=val('e_body'), parts=[];
+      if(sub) parts.push('subject='+encodeURIComponent(sub));
+      if(body) parts.push('body='+encodeURIComponent(body));
+      return 'mailto:'+addr+(parts.length?'?'+parts.join('&'):'');
+    }
+    if(m==='vcard'){
+      var lines=['BEGIN:VCARD','VERSION:3.0'];
+      if(val('v_name')){ lines.push('N:'+val('v_name')); lines.push('FN:'+val('v_name')); }
+      if(val('v_org')) lines.push('ORG:'+val('v_org'));
+      if(val('v_title')) lines.push('TITLE:'+val('v_title'));
+      if(val('v_tel')) lines.push('TEL;TYPE=CELL:'+val('v_tel'));
+      if(val('v_email')) lines.push('EMAIL:'+val('v_email'));
+      lines.push('END:VCARD');
+      return lines.join('\n');
+    }
+    return '';
+  }
+
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function drawCanvas(qr,count,margin,px,fg,bg){
+    var total=count+margin*2;
+    var ms=Math.max(1, Math.floor(px/total));
+    var dim=ms*total;
+    var c=document.getElementById('canvas');
+    c.width=dim; c.height=dim;
+    var ctx=c.getContext('2d');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,dim,dim);
+    ctx.fillStyle=fg;
+    for(var r=0;r<count;r++) for(var col=0;col<count;col++)
+      if(qr.isDark(r,col)) ctx.fillRect((col+margin)*ms,(r+margin)*ms,ms,ms);
+    if(logoImg){
+      var lw=dim*logoRatio, lx=(dim-lw)/2, ly=(dim-lw)/2, pad=lw*0.12;
+      ctx.fillStyle='#fff';
+      roundRect(ctx,lx-pad,ly-pad,lw+pad*2,lw+pad*2,pad);
+      ctx.fill();
+      ctx.drawImage(logoImg,lx,ly,lw,lw);
+    }
+  }
+
+  function buildSVG(qr,count,margin,px,fg,bg){
+    var total=count+margin*2, rects='';
+    for(var r=0;r<count;r++) for(var col=0;col<count;col++)
+      if(qr.isDark(r,col)) rects+='<rect x="'+(col+margin)+'" y="'+(r+margin)+'" width="1" height="1"/>';
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+px+'" height="'+px+
+      '" viewBox="0 0 '+total+' '+total+'" shape-rendering="crispEdges">'+
+      '<rect width="'+total+'" height="'+total+'" fill="'+bg+'"/>'+
+      '<g fill="'+fg+'">'+rects+'</g>';
+    if(logoImg && logoDataURL){
+      var lw=total*logoRatio, lx=(total-lw)/2, ly=(total-lw)/2, pad=lw*0.12;
+      svg+='<rect x="'+(lx-pad)+'" y="'+(ly-pad)+'" width="'+(lw+pad*2)+'" height="'+(lw+pad*2)+'" rx="'+pad+'" fill="#fff"/>'+
+           '<image x="'+lx+'" y="'+ly+'" width="'+lw+'" height="'+lw+'" href="'+logoDataURL+'" xlink:href="'+logoDataURL+'" preserveAspectRatio="xMidYMid meet"/>';
+    }
+    svg+='</svg>';
+    currentSVG=svg;
+  }
+
+  function render(){
+    var T=D[state.lang];
+    var payload=buildPayload();
+    var ec=val('ec'), margin=parseInt(val('margin'),10), px=parseInt(val('size'),10);
+    var fg=val('fg'), bg=val('bg');
+    var meta=document.getElementById('meta');
+    if(!payload){ meta.textContent=T.metaEmpty; return; }
+    try{
+      var qr=qrcode(0,ec);
+      qr.addData(payload);
+      qr.make();
+      var count=qr.getModuleCount();
+      drawCanvas(qr,count,margin,px,fg,bg);
+      buildSVG(qr,count,margin,px,fg,bg);
+      meta.textContent=T.meta(count,ec,payload.length);
+    }catch(e){
+      meta.textContent=T.metaErr(e.message);
+    }
+  }
+
+  // ---------------- 语言应用 ----------------
+  function applyLang(lang){
+    state.lang=lang;
+    var T=D[lang];
+    document.documentElement.lang=lang;
+    document.title=T.title;
+    document.getElementById('tTitle').textContent=T.title;
+    document.getElementById('tSub').textContent=T.sub;
+    document.getElementById('step1').textContent=T.step1;
+    document.getElementById('step2').textContent=T.step2;
+    document.getElementById('step3').textContent=T.step3;
+    [].forEach.call(document.querySelectorAll('#modeSeg button'),function(b){
+      b.textContent=T.modes[b.dataset.mode];
+    });
+    document.getElementById('fields').innerHTML=T.fields[state.mode];
+    document.getElementById('ecLabel').textContent=T.ecLabel;
+    var ecSel=document.getElementById('ec');
+    var cur=ecSel.value||'M';
+    ecSel.innerHTML=T.ecOpts.map(function(o){return '<option value="'+o.v+'">'+o.t+'</option>';}).join('');
+    ecSel.value=cur;
+    document.getElementById('ecVal').textContent=T.ecShort[cur];
+    document.getElementById('sizeLabel').textContent=T.sizeLabel;
+    document.getElementById('marginLabel').textContent=T.marginLabel;
+    document.getElementById('fgLabel').textContent=T.fgLabel;
+    document.getElementById('bgLabel').textContent=T.bgLabel;
+    document.getElementById('logoLabel').textContent=T.logoLabel;
+    document.getElementById('logoUpload').textContent=T.logoUpload;
+    document.getElementById('logoSizeLabel').textContent=T.logoSizeLabel;
+    document.getElementById('logoClear').textContent=T.logoClear;
+    document.getElementById('dlPng').textContent=T.dlPng;
+    document.getElementById('dlSvg').textContent=T.dlSvg;
+    document.getElementById('copyImg').textContent=T.copyImg;
+    document.getElementById('hint').textContent=T.hint;
+    document.getElementById('footer').textContent=T.footer;
+    try{ localStorage.setItem('qr_lang',lang); }catch(e){}
+    render();
+  }
+
+  // ---------------- 事件绑定 ----------------
+  document.getElementById('modeSeg').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    state.mode=b.dataset.mode;
+    [].forEach.call(this.children,function(x){x.classList.toggle('active',x===b);});
+    document.getElementById('fields').innerHTML=D[state.lang].fields[state.mode];
+    render();
+  });
+
+  var fieldsRoot=document.getElementById('fields');
+  fieldsRoot.addEventListener('input',render);
+  fieldsRoot.addEventListener('change',render);
+
+  document.getElementById('ec').addEventListener('change',function(){
+    document.getElementById('ecVal').textContent=D[state.lang].ecShort[this.value]; render();
+  });
+  document.getElementById('size').addEventListener('input',function(){
+    document.getElementById('sizeVal').textContent=this.value+' px'; render();
+  });
+  document.getElementById('margin').addEventListener('input',function(){
+    document.getElementById('marginVal').textContent=this.value; render();
+  });
+  document.getElementById('fg').addEventListener('input',render);
+  document.getElementById('bg').addEventListener('input',render);
+
+  document.getElementById('logoFile').addEventListener('change',function(e){
+    var f=e.target.files&&e.target.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(ev){
+      logoDataURL=ev.target.result;
+      var img=new Image();
+      img.onload=function(){ logoImg=img; render(); };
+      img.src=logoDataURL;
+    };
+    rd.readAsDataURL(f);
+  });
+  document.getElementById('logoSize').addEventListener('input',function(){
+    logoRatio=parseInt(this.value,10)/100;
+    document.getElementById('logoSizeVal').textContent=this.value+'%';
+    render();
+  });
+  document.getElementById('logoClear').addEventListener('click',function(){
+    logoImg=null; logoDataURL=null;
+    document.getElementById('logoFile').value='';
+    render();
+  });
+
+  document.getElementById('dlPng').addEventListener('click',function(){
+    var c=document.getElementById('canvas');
+    var a=document.createElement('a'); a.download='qrcode.png'; a.href=c.toDataURL('image/png'); a.click();
+  });
+  document.getElementById('dlSvg').addEventListener('click',function(){
+    var blob=new Blob([currentSVG],{type:'image/svg+xml'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.download='qrcode.svg'; a.href=url; a.click();
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById('copyImg').addEventListener('click',function(){
+    var T=D[state.lang], c=document.getElementById('canvas');
+    if(!c.toBlob){ alert(T.noCopy); return; }
+    c.toBlob(function(blob){
+      if(navigator.clipboard && window.ClipboardItem){
+        navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(
+          function(){ alert(T.ok); },
+          function(){ alert(T.fail); }
+        );
+      } else { alert(T.noCopy); }
+    });
+  });
+
+  document.getElementById('lang').addEventListener('change',function(){ applyLang(this.value); });
+
+  // ---------------- 初始化 ----------------
+  var saved=null;
+  try{ saved=localStorage.getItem('qr_lang'); }catch(e){}
+  if(saved && D[saved]) state.lang=saved;
+  document.getElementById('lang').value=state.lang;
+  applyLang(state.lang);
+})();
+</script>
+<script>
+// ===== qr-tabkit v1 (tab UI + SEO i18n) =====
+(function(){
+  var TITLES={"zh-CN": "二维码生成器｜在线免费生成 QR Code，一键下载 PNG / SVG", "zh-TW": "二維碼產生器｜線上免費生成 QR Code，一鍵下載 PNG / SVG", "en": "QR Code Generator – Free Online QR Maker, Download PNG/SVG"};
+  var DICT={"zh-CN": {"seo.h1": "二维码生成指南与常见问题", "seo.q1": "在线生成二维码，可以免费商用吗？", "seo.q1p": "可以。本页基于 <b>MIT 许可</b>的 qrcode-generator 库，全部计算在浏览器本地完成，不经过任何服务器：生成结果归你所有，可自由用于印刷品、商品包装、门店物料，<b>无水印、无次数限制</b>。", "seo.q2": "一个二维码最多能装多少内容？", "seo.q2p": "最大版本 40 的 QR Code 在低纠错（L）下可编码约 <b>2953 字节</b>。纠错等级越高容错越强、可装内容越少（L≈7% → H≈30%）。网页链接建议 <b>200 字符以内</b>，保证远距离也能扫。", "seo.q3": "二维码最小能印到多大？", "seo.q3p": "经验值：印刷尺寸 <b>至少 2.5×2.5 cm</b>、四周保留 1/4 码宽静区；手机在 15 cm 外可靠识别。码要印小或加 Logo，就把纠错提到 <b>H 级</b>。", "seo.q4": "怎么生成让别人直接连上的 WiFi 二维码？", "seo.q4p": "选「WiFi」类型，填 <b>SSID、加密方式、密码</b>；隐藏网络勾选 H 选项。打印贴出，手机扫一下即连，免输密码。", "seo.q5": "中间加 Logo 还能扫出来吗？", "seo.q5p": "能。本页给 Logo 铺<b>白色圆角底衬</b>保护模块，Logo 占比控制在 20% 左右、选 H 级纠错，印刷品远距离仍可稳定识别。", "seo.h2ref": "QR Code 标准与权威参考", "seo.li1": "ISO/IEC 18004 · QR Code 国际标准：<a href=\"https://en.wikipedia.org/wiki/QR_code\" target=\"_blank\" rel=\"noopener\">QR code</a>", "seo.li2": "qrcode.com · 初代 QR 规范文档（Denso Wave）：<a href=\"https://www.qrcode.com/\" target=\"_blank\" rel=\"noopener\">qrcode.com</a>", "seo.li3": "kazuhikoarase/qrcode-generator · 本页所用的 MIT 生成库：<a href=\"https://github.com/kazuhikoarase/qrcode-generator\" target=\"_blank\" rel=\"noopener\">GitHub</a>", "seo.li4": "Zxing · 工业级扫码/生成库（Google 开源）：<a href=\"https://github.com/zxing/zxing\" target=\"_blank\" rel=\"noopener\">zxing</a>", "seo.friend": "更多在线工具：<a href=\"https://li00000.xyz/\" target=\"_blank\" rel=\"noopener\">li00000 工具集</a> · <a href=\"https://tjtkw.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">健身体脂计算器</a> · <a href=\"https://bmuws.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">烘焙换算工具</a> · <a href=\"https://bwzib.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">篝火燃料估算</a> · <a href=\"https://calsa.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">时区时差倒计时</a> · <a href=\"https://blog.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">养老生活博客</a>", "seo.fine": "本页所有生成在浏览器本地完成，无任何网络请求；扫码兼容性以各 App 实际表现为准。"}, "zh-TW": {"seo.h1": "二維碼生成指南與常見問題", "seo.q1": "線上生成二維碼，可以免費商用嗎？", "seo.q1p": "可以。本頁基於 <b>MIT 授權</b>的 qrcode-generator 函式庫，所有計算都在瀏覽器本地完成，不經過任何伺服器：生成結果歸你所有，可自由用於印刷品、商品包裝、門店物料，<b>無浮水印、無次數限制</b>。", "seo.q2": "一個二維碼最多能裝多少內容？", "seo.q2p": "最大版本 40 的 QR Code 在低糾錯（L）下可編碼約 <b>2953 位元組</b>。糾錯等級越高容錯越強、可裝內容越少（L≈7% → H≈30%）。網頁連結建議 <b>200 字元以內</b>，保證遠距離也能掃。", "seo.q3": "二維碼最小能印到多大？", "seo.q3p": "經驗值：印刷尺寸 <b>至少 2.5×2.5 cm</b>、四周保留 1/4 碼寬靜區；手機在 15 cm 外可靠識別。碼要印小或加 Logo，就把糾錯提到 <b>H 級</b>。", "seo.q4": "怎麼生成讓別人直接連上的 WiFi 二維碼？", "seo.q4p": "選「WiFi」類型，填 <b>SSID、加密方式、密碼</b>；隱藏網路勾選 H 選項。列印貼出，手機掃一下即連，免輸密碼。", "seo.q5": "中間加 Logo 還能掃出來嗎？", "seo.q5p": "能。本頁給 Logo 鋪<b>白色圓角底襯</b>保護模組，Logo 佔比控制在 20% 左右、選 H 級糾錯，印刷品遠距離仍可穩定識別。", "seo.h2ref": "QR Code 標準與權威參考", "seo.li1": "ISO/IEC 18004 · QR Code 國際標準：<a href=\"https://en.wikipedia.org/wiki/QR_code\" target=\"_blank\" rel=\"noopener\">QR code</a>", "seo.li2": "qrcode.com · 初代 QR 規範文件（Denso Wave）：<a href=\"https://www.qrcode.com/\" target=\"_blank\" rel=\"noopener\">qrcode.com</a>", "seo.li3": "kazuhikoarase/qrcode-generator · 本頁所使用的 MIT 生成函式庫：<a href=\"https://github.com/kazuhikoarase/qrcode-generator\" target=\"_blank\" rel=\"noopener\">GitHub</a>", "seo.li4": "Zxing · 工業級掃碼/生成函式庫（Google 開源）：<a href=\"https://github.com/zxing/zxing\" target=\"_blank\" rel=\"noopener\">zxing</a>", "seo.friend": "更多線上工具：<a href=\"https://li00000.xyz/\" target=\"_blank\" rel=\"noopener\">li00000 工具集</a> · <a href=\"https://tjtkw.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">健身体質脂肪計算器</a> · <a href=\"https://bmuws.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">烘焙換算工具</a> · <a href=\"https://bwzib.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">篝火燃料估算</a> · <a href=\"https://calsa.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">時區時差倒數</a> · <a href=\"https://blog.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">養老生活部落格</a>", "seo.fine": "本頁所有生成都在瀏覽器本地完成，無任何網路請求；掃碼相容性以各 App 實際表現為準。"}, "en": {"seo.h1": "QR Code Guide & FAQ", "seo.q1": "Can QR codes generated here be used commercially, for free?", "seo.q1p": "Yes. This page is built on the <b>MIT-licensed</b> qrcode-generator library and runs entirely in your browser with no server involved: the output is yours to use in print, packaging and store materials, with <b>no watermark and no usage limits</b>.", "seo.q2": "How much content can a single QR code hold?", "seo.q2p": "A version-40 QR Code in low error correction (L) encodes about <b>2953 bytes</b>. Higher correction holds less data (L≈7% → H≈30%). Keep web links under <b>200 characters</b> so phones can still scan them at a distance.", "seo.q3": "How small can a QR code be printed?", "seo.q3p": "Rule of thumb: <b>at least 2.5×2.5 cm</b> in print, with a quiet zone of a quarter code width; phones reliably scan at ~15 cm. Printing small or adding a logo? Use <b>H-level</b> correction.", "seo.q4": "How do I make a QR code that connects people to my WiFi?", "seo.q4p": "Pick the “WiFi” type, enter the <b>SSID, security and password</b>; tick the H option for hidden networks. Print and stick it up — phones connect with one scan, no typing.", "seo.q5": "Does a centered logo make it unscannable?", "seo.q5p": "No. The logo gets a <b>white rounded base plate</b> to protect the modules; keep it around 20% of the code and use H-level correction and printed copies stay scannable at distance.", "seo.h2ref": "QR Code standards & authoritative references", "seo.li1": "ISO/IEC 18004 · the international QR Code standard: <a href=\"https://en.wikipedia.org/wiki/QR_code\" target=\"_blank\" rel=\"noopener\">QR code</a>", "seo.li2": "qrcode.com · the original QR specification (Denso Wave): <a href=\"https://www.qrcode.com/\" target=\"_blank\" rel=\"noopener\">qrcode.com</a>", "seo.li3": "kazuhikoarase/qrcode-generator · the MIT library this page uses: <a href=\"https://github.com/kazuhikoarase/qrcode-generator\" target=\"_blank\" rel=\"noopener\">GitHub</a>", "seo.li4": "Zxing · industrial-grade scanning/generation (Google, open source): <a href=\"https://github.com/zxing/zxing\" target=\"_blank\" rel=\"noopener\">zxing</a>", "seo.friend": "More tools: <a href=\"https://li00000.xyz/\" target=\"_blank\" rel=\"noopener\">li00000 toolkit</a> · <a href=\"https://tjtkw.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">fitness body-fat calculator</a> · <a href=\"https://bmuws.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">baking converter</a> · <a href=\"https://bwzib.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">campfire fuel estimator</a> · <a href=\"https://calsa.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">timezone countdown</a> · <a href=\"https://blog.li00000.xyz/\" target=\"_blank\" rel=\"noopener\">RetirePlan blog</a>", "seo.fine": "Everything is generated locally in your browser with zero network requests; scanning compatibility depends on each app."}};
+  function upd(){
+    var l=document.documentElement.getAttribute("lang")||"zh-CN";
+    if(!(l in TITLES)) l="zh-CN";
+    document.title=TITLES[l];
+    var d=DICT[l];
+    document.querySelectorAll("[data-qr]").forEach(function(el){
+      var k=el.getAttribute("data-qr");
+      if(d[k]!=null) el.innerHTML=d[k];
+    });
+  }
+  var mo=new MutationObserver(function(){upd();});
+  mo.observe(document.documentElement,{attributes:true,attributeFilter:["lang"]});
+  upd();
+})();
+</script>
+</body>
+</html>
